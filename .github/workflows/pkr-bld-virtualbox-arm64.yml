@@ -42,24 +42,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@main
-      - name: Install Vagrant VirtualBox
+      - name: Install VirtualBox
         run: |
-          brew install vagrant virtualbox
-      - name: Install Chef
-        uses: actionshub/chef-install@3.0.0
+          brew install virtualbox
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
           version: latest
-      - name: Install Bento
-        run: |
-          eval "$(chef shell-init bash)"
-          gem build bento.gemspec
-          gem install bento-*.gem
       - name: Bento build
         run: |
-          eval "$(chef shell-init bash)"
-          bento build -o ${{ matrix.provider }}.vm os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-aarch64.pkrvars.hcl"
+          # bento build -o ${{ matrix.provider }}.vm os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-aarch64.pkrvars.hcl"
+          packer init -upgrade packer_templates
+          packer build -only=${{ matrix.provider }}.vm -var-file=os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-aarch64.pkrvars.hcl" packer_templates
           ls -alh builds/build_complete/
           cat builds/build_complete/${{ matrix.os }}*-aarch64._metadata.json
       - name: Remove VM in case of canceled job
@@ -72,10 +66,10 @@ jobs:
           sleep 1
           vboxmanage unregistervm $VM --delete
           sleep 2
-      - name: Bento Test
-        run: |
-          eval "$(chef shell-init bash)"
-          bento test
+      # - name: Bento Test
+      #   run: |
+      #     eval "$(chef shell-init bash)"
+      #     bento test
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
