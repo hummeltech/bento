@@ -73,7 +73,9 @@ jobs:
           sudo ln -s /mnt/builds ./
           eval "$(chef shell-init bash)"
           export LOGNAME=$USER
-          bento build -o ${{ matrix.provider }}.vm os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-x86_64.pkrvars.hcl"
+          # bento build -o ${{ matrix.provider }}.vm os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-x86_64.pkrvars.hcl"
+          packer init -upgrade packer_templates
+          packer build -only=${{ matrix.provider }}.vm -var-file=os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-x86_64.pkrvars.hcl" packer_templates
           ls -alh builds/build_complete/
           cat builds/build_complete/${{ matrix.os }}*-x86_64._metadata.json
       - name: Bento Test
