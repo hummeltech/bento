@@ -7,11 +7,11 @@ permissions:
 
 env:
   PACKER_GITHUB_API_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-  # PACKER_LOG: "1"
+  PACKER_LOG: "1"
 
 jobs:
   aarch64:
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-24.04-arm
     strategy:
       fail-fast: false
       matrix:
@@ -42,46 +42,42 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@main
-      - name: Install Vagrant QEMU
+      - name: Install QEMU
         run: |
           wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt-get update
-          sudo apt-get install -y software-properties-common vagrant qemu-kvm libvirt-daemon-system virtinst libvirt-clients bridge-utils qemu-utils libvirt-dev
+          sudo apt-get install -y software-properties-common qemu-kvm libvirt-daemon-system virtinst libvirt-clients bridge-utils qemu-utils libvirt-dev ovmf
       - name: Enable KVM
         run: |
           # echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           # sudo udevadm control --reload-rules
           # sudo udevadm trigger --name-match=kvm
-          # sudo usermod -aG kvm $USER
+          sudo usermod -aG kvm $USER
           sudo usermod -aG libvirt $USER
           sudo chmod o+rw /var/run/libvirt/libvirt-sock
           sudo systemctl start libvirtd
           sudo systemctl status libvirtd
-      - name: Install Chef
-        uses: actionshub/chef-install@3.0.0
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
         with:
           version: latest
-      - name: Install Bento
-        run: |
-          eval "$(chef shell-init bash)"
-          gem build bento.gemspec
-          gem install bento-*.gem
       - name: Bento build
         run: |
-          eval "$(chef shell-init bash)"
+          curl --silent https://retrage.github.io/edk2-nightly/bin/RELEASEAARCH64_QEMU_EFI.fd > /tmp/RELEASEAARCH64_QEMU_EFI.fd
+          qemu-img resize /tmp/RELEASEAARCH64_QEMU_EFI.fd +63963136
+          curl --silent https://retrage.github.io/edk2-nightly/bin/RELEASEAARCH64_QEMU_VARS.fd > /tmp/RELEASEAARCH64_QEMU_VARS.fd
+          qemu-img resize /tmp/RELEASEAARCH64_QEMU_VARS.fd +66322432
           touch packer_templates/variables.auto.pkrvars.hcl
-          echo 'qemu_efi_firmware_code = "/usr/share/OVMF/OVMF_CODE_4M.fd"' >> packer_templates/variables.auto.pkrvars.hcl
-          echo 'qemu_efi_firmware_vars = "/usr/share/OVMF/OVMF_VARS_4M.fd"' >> packer_templates/variables.auto.pkrvars.hcl
-          bento build -o ${{ matrix.provider }}.vm os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-aarch64.pkrvars.hcl"
+          echo 'memory = 3072' >> packer_templates/variables.auto.pkrvars.hcl
+          echo 'qemu_cpu_model = "max"' >> packer_templates/variables.auto.pkrvars.hcl
+          echo 'qemu_efi_firmware_code = "/tmp/RELEASEAARCH64_QEMU_EFI.fd"' >> packer_templates/variables.auto.pkrvars.hcl
+          echo 'qemu_efi_firmware_vars = "/tmp/RELEASEAARCH64_QEMU_VARS.fd"' >> packer_templates/variables.auto.pkrvars.hcl
+          # bento build -o ${{ matrix.provider }}.vm os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-aarch64.pkrvars.hcl"
+          packer init -upgrade packer_templates
+          packer build -only=${{ matrix.provider }}.vm -var-file=os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-aarch64.pkrvars.hcl" packer_templates
           ls -alh builds/build_complete/
           cat builds/build_complete/${{ matrix.os }}*-aarch64._metadata.json
-      - name: Bento Test
-        run: |
-          eval "$(chef shell-init bash)"
-          bento test libvirt
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:

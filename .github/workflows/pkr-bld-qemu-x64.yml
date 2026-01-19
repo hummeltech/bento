@@ -82,8 +82,8 @@ jobs:
           sudo ln -s /mnt/builds ./
           eval "$(chef shell-init bash)"
           touch packer_templates/variables.auto.pkrvars.hcl
-          echo 'qemu_efi_firmware_code = "/usr/share/OVMF/OVMF_CODE_4M.fd"' >> packer_templates/variables.auto.pkrvars.hcl
-          echo 'qemu_efi_firmware_vars = "/usr/share/OVMF/OVMF_VARS_4M.fd"' >> packer_templates/variables.auto.pkrvars.hcl
+          echo 'qemu_efi_firmware_code = "/usr/share/OVMF/OVMF_CODE.fd"' >> packer_templates/variables.auto.pkrvars.hcl
+          echo 'qemu_efi_firmware_vars = "/usr/share/OVMF/OVMF_VARS.fd"' >> packer_templates/variables.auto.pkrvars.hcl
           # bento build -o ${{ matrix.provider }}.vm os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-x86_64.pkrvars.hcl"
           packer init -upgrade packer_templates
           packer build -only=${{ matrix.provider }}.vm -var-file=os_pkrvars/$(echo ${{ matrix.os }} | cut -d "-" -f 1)/"${{ matrix.os }}-x86_64.pkrvars.hcl" packer_templates
