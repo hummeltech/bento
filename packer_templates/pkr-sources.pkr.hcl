@@ -179,7 +179,6 @@ locals {
         ["modifyvm", "{{.Name}}", "--graphicscontroller", "qemuramfb"],
         ["modifyvm", "{{.Name}}", "--mouse", "usb"],
         ["modifyvm", "{{.Name}}", "--keyboard", "usb"],
-        ["storagectl", "{{.Name}}", "--name", "IDE Controller", "--remove"],
         ] : [
         ["modifyvm", "{{.Name}}", "--audio-enabled", "off"],
         ["modifyvm", "{{.Name}}", "--nat-localhostreachable1", "on"],
@@ -187,7 +186,6 @@ locals {
         ["modifyvm", "{{.Name}}", "--usb-xhci", "on"],
         ["modifyvm", "{{.Name}}", "--mouse", "usb"],
         ["modifyvm", "{{.Name}}", "--keyboard", "usb"],
-        ["storagectl", "{{.Name}}", "--name", "IDE Controller", "--remove"],
       ]
     )
   ) : var.vboxmanage
